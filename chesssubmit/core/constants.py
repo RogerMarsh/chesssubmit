@@ -112,8 +112,6 @@ FINISH = "FINISH"
 # Those available for use in ECF submissions (so merges.py must know).
 
 # Event configuration file.
-# The default extracted.conf file name defined in emailextract is not used.
-EVENT_CONF = "event.conf"
 
 # Most recently accessed database and configuation files for selecting and
 # extracting text from emails to documents.

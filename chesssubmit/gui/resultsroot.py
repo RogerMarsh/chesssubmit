@@ -22,22 +22,6 @@ ExceptionHandler._application_name = APPLICATION_NAME
 class Results(chessvalidate.gui.resultsroot.Results):
     """Results application."""
 
-    def configure_extract_text_from_emails(self):
-        """Set parameters that control results extraction from emails."""
-        configure.Configure(
-            master=self.root,
-            use_toplevel=True,
-            application_name="".join((APPLICATION_NAME, " (extract text)")),
-        )
-
-    def configure_email_selection(self):
-        """Set parameters that control email selection from mailboxes."""
-        selectemail.SelectEmail(
-            master=self.root,
-            use_toplevel=True,
-            application_name="".join((APPLICATION_NAME, " (select emails)")),
-        )
-
     def help_about(self):
         """Display information about Submit Results application."""
         help_.help_about(self.root)
