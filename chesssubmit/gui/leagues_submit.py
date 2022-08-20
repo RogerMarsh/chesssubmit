@@ -16,7 +16,8 @@ from ..core import configuration
 class Leagues(leagues_validate.Leagues):
     """The Results frame for a Results database."""
 
-    def document_edit(self, **kargs):
+    @staticmethod
+    def document_edit(**kargs):
         """Return sourceedit.SourceEdit class instance."""
         return sourceedit.SourceEdit(**kargs)
 
@@ -27,7 +28,8 @@ class Leagues(leagues_validate.Leagues):
             os.path.join(self.results_folder, ERROR_LOG)
         )
 
-    def make_configuration_instance(self):
+    @staticmethod
+    def make_configuration_instance():
         """Return Configuration() made with imported configuration module.
 
         Subclasses should override this method to use their configuration
