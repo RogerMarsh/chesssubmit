@@ -100,6 +100,7 @@ class SourceEdit(sourceedit.SourceEdit):
         entries in the event configuration file.
 
         """
+        del event
         if self.create_ecf_submission():
             self.show_buttons_for_generate()
             self.create_buttons()
@@ -148,152 +149,173 @@ class SourceEdit(sourceedit.SourceEdit):
                 title="Create ECF Submission File",
                 message="ECF Submission File file not saved",
             )
-            return
+            return None
         conf.set_configuration_value(
             constants.RECENT_SOURCE_SUBMISSION,
             conf.convert_home_directory_to_tilde(os.path.dirname(filename)),
         )
 
         self._collate_unfinished_games()
-        rows = sorted(
-            get_game_rows_for_csv_format(
-                self.get_context().results_data.get_collated_games()
-            )
-        )
         trro = {
             item: i
             for i, item in enumerate(constants.TABULAR_REPORT_ROW_ORDER)
         }
         players = {}
         events = {}
-        for r in rows:
-            r = {item: r[trro[item]] for item in trro}
-            if r[constants.REPORT_HOME_PLAYER] is None:
-                r[constants.REPORT_HOME_PLAYER] = ""
-            if r[constants.REPORT_AWAY_PLAYER] is None:
-                r[constants.REPORT_AWAY_PLAYER] = ""
-            if r[constants.REPORT_EVENT] not in events:
-                events[r[constants.REPORT_EVENT]] = {}
-            sections = events[r[constants.REPORT_EVENT]]
-            name1, codes1 = split_codes_from_name(
-                r[constants.REPORT_HOME_PLAYER]
+        for row in sorted(
+            get_game_rows_for_csv_format(
+                self.get_context().results_data.get_collated_games()
             )
-            if not name1:
-                continue
-            name2, codes2 = split_codes_from_name(
-                r[constants.REPORT_AWAY_PLAYER]
+        ):
+            self._process_csv_row(
+                {item: row[trro[item]] for item in trro}, players, events
             )
-            if not name2:
-                continue
-            player1 = (  # "1" is ECF term.
-                name1,
-                r[constants.REPORT_SECTION],
-                r[constants.REPORT_HOME_TEAM],  # "" unless MATCH SECTION.
-            )
-            player2 = (  # "2" is ECF term.
-                name2,
-                r[constants.REPORT_SECTION],
-                r[constants.REPORT_AWAY_TEAM],  # "" unless MATCH SECTION.
-            )
-            if name1 and player1 not in players:
-                pin = str(len(players) + 1)  # PIN 0 reserved by ECF.
-                players[player1] = (
-                    pin,
-                    self._create_player_list_entry(
-                        pin,
-                        " ".join(codes1),
-                        name1,
-                        r[constants.REPORT_HOME_TEAM],
-                    ),
-                )
-            player = self._create_player_list_entry(
-                players[player1][0],
-                " ".join(codes1),
-                name1,
-                r[constants.REPORT_HOME_TEAM],
-            )
-            if player != players[player1][1]:
-                raise RuntimeError("Player1 entry")  # Replace later.
-            if name2 and player2 not in players:
-                pin = str(len(players) + 1)  # PIN 0 reserved by ECF.
-                players[player2] = (
-                    pin,
-                    self._create_player_list_entry(
-                        pin,
-                        " ".join(codes2),
-                        name2,
-                        r[constants.REPORT_AWAY_TEAM],
-                    ),
-                )
-            player = self._create_player_list_entry(
-                players[player2][0],
-                " ".join(codes2),
-                name2,
-                r[constants.REPORT_AWAY_TEAM],
-            )
-            if player != players[player2][1]:
-                raise RuntimeError("Player2 entry")  # Replace later.
-            if r[constants.REPORT_HOME_TEAM] and r[constants.REPORT_AWAY_TEAM]:
-                section_name = "=".join(
-                    (
-                        constants.MATCH_RESULTS,
-                        " - ".join(
-                            (
-                                r[constants.REPORT_HOME_TEAM],
-                                r[constants.REPORT_AWAY_TEAM],
-                            )
-                        ),
-                    )
-                )
-                game = self._create_game_list_entry(
-                    players[player1][0],
-                    r[constants.REPORT_RESULT],
-                    players[player2][0],
-                    r[constants.REPORT_DATE],
-                    r[constants.REPORT_HOME_PLAYER_COLOUR],
-                    board=r[constants.REPORT_BOARD],
-                )
-            elif r[constants.REPORT_ROUND] is not None:
-                section_name = "=".join(
-                    (constants.SECTION_RESULTS, r[constants.REPORT_SECTION])
-                )
-                game = self._create_game_list_entry(
-                    players[player1][0],
-                    r[constants.REPORT_RESULT],
-                    players[player2][0],
-                    r[constants.REPORT_DATE],
-                    r[constants.REPORT_HOME_PLAYER_COLOUR],
-                    round_=r[constants.REPORT_ROUND],
-                )
-            else:
-                section_name = "=".join(
-                    (constants.OTHER_RESULTS, r[constants.REPORT_SECTION])
-                )
-                game = self._create_game_list_entry(
-                    players[player1][0],
-                    r[constants.REPORT_RESULT],
-                    players[player2][0],
-                    r[constants.REPORT_DATE],
-                    r[constants.REPORT_HOME_PLAYER_COLOUR],
-                )
-            if section_name not in sections:
-                sections[section_name] = []
-            sections[section_name].append(game)
-        # print(sections)
-        # print(players)
         with open(filename, "w", newline="") as file:
             # The event header is to be supplied.
             file.write("#".join(("\n", constants.PLAYER_LIST)))
             for player in sorted(players):
                 file.write(players[player][-1])
-            for section in sorted(sections):
-                file.write("#".join(("\n", section)))
-                file.write("".join(sections[section]))
+            for event in sorted(events):
+                subevents = events[event]
+                for subevent in sorted(subevents):
+                    sections = subevents[subevent]
+                    for section in sections:
+                        file.write("#".join(("\n", section)))
+                        file.write("".join(sections[section]))
             file.write("#".join(("\n", constants.FINISH)))
         return True
 
+    def _process_csv_row(self, row, players, events):
+        """Collate row in section in events."""
+        if row[constants.REPORT_HOME_PLAYER] is None:
+            row[constants.REPORT_HOME_PLAYER] = ""
+        if row[constants.REPORT_AWAY_PLAYER] is None:
+            row[constants.REPORT_AWAY_PLAYER] = ""
+        if row[constants.REPORT_EVENT] not in events:
+            events[row[constants.REPORT_EVENT]] = {}
+        event = events[row[constants.REPORT_EVENT]]
+        if row[constants.REPORT_SECTION] not in event:
+            event[row[constants.REPORT_SECTION]] = {}
+        section = event[row[constants.REPORT_SECTION]]
+        player1, player2 = self._create_players_for_row(players, row)
+        if player1 is None or player2 is None:
+            return
+        if row[constants.REPORT_HOME_TEAM] and row[constants.REPORT_AWAY_TEAM]:
+            section_name = "=".join(
+                (
+                    constants.MATCH_RESULTS,
+                    " - ".join(
+                        (
+                            row[constants.REPORT_HOME_TEAM],
+                            row[constants.REPORT_AWAY_TEAM],
+                        )
+                    ),
+                )
+            )
+            game = self._create_game_list_entry(
+                players[player1][0],
+                row[constants.REPORT_RESULT],
+                players[player2][0],
+                row[constants.REPORT_DATE],
+                row[constants.REPORT_HOME_PLAYER_COLOUR],
+                board=row[constants.REPORT_BOARD],
+            )
+        elif row[constants.REPORT_ROUND] is not None:
+            section_name = "=".join(
+                (constants.SECTION_RESULTS, row[constants.REPORT_SECTION])
+            )
+            game = self._create_game_list_entry(
+                players[player1][0],
+                row[constants.REPORT_RESULT],
+                players[player2][0],
+                row[constants.REPORT_DATE],
+                row[constants.REPORT_HOME_PLAYER_COLOUR],
+                round_=row[constants.REPORT_ROUND],
+            )
+        else:
+            section_name = "=".join(
+                (constants.OTHER_RESULTS, row[constants.REPORT_SECTION])
+            )
+            game = self._create_game_list_entry(
+                players[player1][0],
+                row[constants.REPORT_RESULT],
+                players[player2][0],
+                row[constants.REPORT_DATE],
+                row[constants.REPORT_HOME_PLAYER_COLOUR],
+            )
+        if section_name not in section:
+            section[section_name] = []
+        section[section_name].append(game)
+
+    def _create_players_for_row(self, players, row):
+        """Create entries in players for player names and codes in row."""
+        name1, codes1 = split_codes_from_name(
+            row[constants.REPORT_HOME_PLAYER]
+        )
+        if not name1:
+            return (None, None)
+        name2, codes2 = split_codes_from_name(
+            row[constants.REPORT_AWAY_PLAYER]
+        )
+        if not name2:
+            return (None, None)
+        player1 = (  # "1" is ECF term.
+            name1,
+            row[constants.REPORT_SECTION],
+            row[constants.REPORT_HOME_TEAM],  # "" unless MATCH SECTION.
+        )
+        player2 = (  # "2" is ECF term.
+            name2,
+            row[constants.REPORT_SECTION],
+            row[constants.REPORT_AWAY_TEAM],  # "" unless MATCH SECTION.
+        )
+        if name1 and player1 not in players:
+            pin = str(len(players) + 1)  # PIN 0 reserved by ECF.
+            players[player1] = (
+                pin,
+                self._create_player_list_entry(
+                    pin,
+                    " ".join(codes1),
+                    name1,
+                    row[constants.REPORT_HOME_TEAM],
+                ),
+            )
+        player = self._create_player_list_entry(
+            players[player1][0],
+            " ".join(codes1),
+            name1,
+            row[constants.REPORT_HOME_TEAM],
+        )
+        if player != players[player1][1]:
+            raise RuntimeError("Player1 entry")  # Replace later.
+        if name2 and player2 not in players:
+            pin = str(len(players) + 1)  # PIN 0 reserved by ECF.
+            players[player2] = (
+                pin,
+                self._create_player_list_entry(
+                    pin,
+                    " ".join(codes2),
+                    name2,
+                    row[constants.REPORT_AWAY_TEAM],
+                ),
+            )
+        player = self._create_player_list_entry(
+            players[player2][0],
+            " ".join(codes2),
+            name2,
+            row[constants.REPORT_AWAY_TEAM],
+        )
+        if player != players[player2][1]:
+            raise RuntimeError("Player2 entry")  # Replace later.
+        return (player1, player2)
+
+    # This method gets a too-many-arguments message from pylint.
+    # The player entry requires four mandatory, and two optional, items
+    # of information; and these should have helpful names in the argument
+    # list.
+    @staticmethod
     def _create_player_list_entry(
-        self, pin, codes, name, club, clubcode="", countycode=""
+        pin, codes, name, club, clubcode="", countycode=""
     ):
         """Return ECF submission file player list entry."""
         return "#".join(
@@ -308,6 +330,13 @@ class SourceEdit(sourceedit.SourceEdit):
             )
         )
 
+    # This method gets a too-many-arguments message from pylint.
+    # The game entry requires five mandatory, and two optional, items
+    # of information; and these should have helpful names in the argument
+    # list.
+    # The gamedate and pin1colour items are optional downstream, when the
+    # information is sent to the ECF, but it is best if they are always
+    # present.
     def _create_game_list_entry(
         self, pin1, score, pin2, gamedate, pin1colour, round_=None, board=None
     ):
@@ -351,11 +380,13 @@ class SourceEdit(sourceedit.SourceEdit):
     def _convert_date_to_ecf_format(gamedate):
         """Return date in 'dd/mm/yyyy' format assuming 'yyyy-mm-dd' input.
 
-        The date format is not checked except for 'gamedate is None'"""
+        The date format is not checked except for 'gamedate is None'.
+        """
         return "=".join(
             (
                 constants.GAME_DATE,
                 "/".join(reversed(gamedate.split("-")))
-                 if gamedate is not None else "",
+                if gamedate is not None
+                else "",
             )
         )
