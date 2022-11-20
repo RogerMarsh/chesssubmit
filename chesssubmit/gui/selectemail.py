@@ -5,20 +5,8 @@
 """Email selection filter User Interface for Submit Results application."""
 from chessvalidate.gui import selectemail
 
-from ..core import configuration
+from . import fileaccess
 
 
-class SelectEmail(selectemail.SelectEmail):
+class SelectEmail(fileaccess.FileAccess, selectemail.SelectEmail):
     """Add store configuration file to select.Select for opening files."""
-
-    def file_new(self, conf=None):
-        """Set configuration then delegate."""
-        if conf is None:
-            conf = configuration
-        super().file_new(conf=conf)
-
-    def file_open(self, conf=None):
-        """Set configuration then delegate."""
-        if conf is None:
-            conf = configuration
-        super().file_open(conf=conf)

@@ -320,12 +320,7 @@ class SourceEdit(sourceedit.SourceEdit):
                     "=".join((constants.SCORE, resultmapecf[score])),
                     "=".join((constants.PIN2, pin2)),
                     "=".join((constants.ROUND, round_)),
-                    "=".join(
-                        (
-                            constants.GAME_DATE,
-                            "/".join(reversed(gamedate.split("-"))),
-                        )
-                    ),
+                    self._convert_date_to_ecf_format(gamedate),
                     "=".join((constants.COLOUR, pin1colour)),
                 )
             )
@@ -337,12 +332,7 @@ class SourceEdit(sourceedit.SourceEdit):
                     "=".join((constants.SCORE, resultmapecf[score])),
                     "=".join((constants.PIN2, pin2)),
                     "=".join((constants.BOARD, board)),
-                    "=".join(
-                        (
-                            constants.GAME_DATE,
-                            "/".join(reversed(gamedate.split("-"))),
-                        )
-                    ),
+                    self._convert_date_to_ecf_format(gamedate),
                     "=".join((constants.COLOUR, pin1colour)),
                 )
             )
@@ -352,12 +342,20 @@ class SourceEdit(sourceedit.SourceEdit):
                 "=".join((constants.PIN1, pin1)),
                 "=".join((constants.SCORE, resultmapecf[score])),
                 "=".join((constants.PIN2, pin2)),
-                "=".join(
-                    (
-                        constants.GAME_DATE,
-                        "/".join(reversed(gamedate.split("-"))),
-                    )
-                ),
+                self._convert_date_to_ecf_format(gamedate),
                 "=".join((constants.COLOUR, pin1colour)),
+            )
+        )
+
+    @staticmethod
+    def _convert_date_to_ecf_format(gamedate):
+        """Return date in 'dd/mm/yyyy' format assuming 'yyyy-mm-dd' input.
+
+        The date format is not checked except for 'gamedate is None'"""
+        return "=".join(
+            (
+                constants.GAME_DATE,
+                "/".join(reversed(gamedate.split("-")))
+                 if gamedate is not None else "",
             )
         )
