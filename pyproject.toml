@@ -1,9 +1,51 @@
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=61.0",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 79
+
+[project]
+name = "chesssubmit"
+version = "1.0.dev4"
+authors = [
+  { name="Roger Marsh", email="roger.marsh@solentware.co.uk" },
+]
+description = "Submit results of chess games to ECF for rating."
+classifiers = [
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+    "Topic :: Games/Entertainment :: Board Games",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+]
+license = {file = "LICENCE"}
+readme = "README"
+dependencies = [
+    "chessvalidate==2.0.2.dev1",
+]
+
+[project.urls]
+Homepage = "http://www.solentware.co.uk"
+Repository = "https://github.com/RogerMarsh/chesssubmit.git"
+"Bug Tracker" = "https://github.com/RogerMarsh/chesssubmit/issues"
+
+[tool.setuptools]
+packages = [
+    "chesssubmit",
+    "chesssubmit.core",
+    "chesssubmit.gui",
+    "chesssubmit.help_",
+]
+
+[tool.setuptools.package-data]
+chesssubmit = ["help_/*.txt"]
