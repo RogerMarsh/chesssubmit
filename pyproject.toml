@@ -31,7 +31,7 @@ classifiers = [
 license = {file = "LICENCE"}
 readme = "README"
 dependencies = [
-    "chessvalidate==2.0.2.dev1",
+    "chessvalidate==2.0.2",
 ]
 
 [project.urls]
